@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17                 # PostgreSQL 17
+    container_name: postgres-fitval    # nombre del contenedor de esta entrega
+    environment:
+      POSTGRES_USER: alumno            # usuario
+      POSTGRES_PASSWORD: alumno_dev_123
+      POSTGRES_DB: fitval              # crea la base de datos fitval al arrancar
+    ports:
+      - "5433:5432"                    # en tu ordenador, el puerto 5433
+    volumes:
+      - fitval-data:/var/lib/postgresql/data   # los datos no se pierden al parar
+
+volumes:
+  fitval-data:
