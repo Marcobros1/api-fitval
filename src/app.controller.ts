@@ -1,12 +1,16 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
+import { Pool } from 'pg';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly pool: Pool) {} // NestJS nos da el Pool
 
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  // GET /api/health: ¿está viva la API? ¿y la base de datos?
+  @Get('health')
+  async health() {
+    const result = await this.pool.query<{ database: string }>(
+      'SELECT current_database() AS database',
+    );
+    return { status: 'ok', database: result.rows[0].database };
   }
 }
