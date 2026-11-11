@@ -16,9 +16,7 @@ describe('ClassesController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ClassesController],
-      providers: [
-        { provide: ClassesService, useValue: service },
-      ],
+      providers: [{ provide: ClassesService, useValue: service }],
     }).compile();
 
     controller = module.get(ClassesController);
@@ -26,7 +24,9 @@ describe('ClassesController', () => {
 
   describe('findAll', () => {
     it('devuelve lo que devuelve el servicio', async () => {
-      const clases = [{ id: 1, activity: 'Spinning', trainerName: 'Carla Navarro' }];
+      const clases = [
+        { id: 1, activity: 'Spinning', trainerName: 'Carla Navarro' },
+      ];
       service.findAll.mockResolvedValue(clases);
 
       const result = await controller.findAll('yoga');
@@ -38,7 +38,11 @@ describe('ClassesController', () => {
 
   describe('findOne', () => {
     it('devuelve la clase pedida por id', async () => {
-      const clase = { id: 7, activity: 'Crossfit', trainerName: 'Carla Navarro' };
+      const clase = {
+        id: 7,
+        activity: 'Crossfit',
+        trainerName: 'Carla Navarro',
+      };
       service.findOne.mockResolvedValue(clase);
 
       const result = await controller.findOne(7);

@@ -16,26 +16,25 @@ describe('ClassesService', () => {
     pool = { query: jest.fn() };
     pool.query.mockReset();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ClassesService,
-        { provide: Pool, useValue: pool },
-      ],
+      providers: [ClassesService, { provide: Pool, useValue: pool }],
     }).compile();
     service = module.get(ClassesService);
   });
 
   describe('findAll', () => {
     it('devuelve clases ordenadas por fecha de inicio', async () => {
-      pool.query.mockResolvedValue({ rows: [
-        {
-          id: 1,
-          activity: 'Spinning',
-          room: 'Sala 1',
-          starts_at: '2026-11-02T09:00:00.000Z',
-          spots: 12,
-          trainer_name: 'Carla Navarro',
-        },
-      ] });
+      pool.query.mockResolvedValue({
+        rows: [
+          {
+            id: 1,
+            activity: 'Spinning',
+            room: 'Sala 1',
+            starts_at: '2026-11-02T09:00:00.000Z',
+            spots: 12,
+            trainer_name: 'Carla Navarro',
+          },
+        ],
+      });
 
       const result = await service.findAll();
 
@@ -67,16 +66,18 @@ describe('ClassesService', () => {
 
   describe('findOne', () => {
     it('devuelve una clase por su id', async () => {
-      pool.query.mockResolvedValue({ rows: [
-        {
-          id: 7,
-          activity: 'Crossfit',
-          room: 'Sala 3',
-          starts_at: '2026-11-05T20:00:00.000Z',
-          spots: 3,
-          trainer_name: 'Carla Navarro',
-        },
-      ] });
+      pool.query.mockResolvedValue({
+        rows: [
+          {
+            id: 7,
+            activity: 'Crossfit',
+            room: 'Sala 3',
+            starts_at: '2026-11-05T20:00:00.000Z',
+            spots: 3,
+            trainer_name: 'Carla Navarro',
+          },
+        ],
+      });
 
       const result = await service.findOne(7);
 
@@ -113,16 +114,18 @@ describe('ClassesService', () => {
     it('verifica que el monitor exista antes de insertar', async () => {
       pool.query
         .mockResolvedValueOnce({ rows: [{ id: 4 }] }) // trainers
-        .mockResolvedValueOnce({ rows: [
-          {
-            id: 8,
-            activity: 'Fuerza',
-            room: 'Sala 3',
-            starts_at: '2026-11-10T18:00:00.000Z',
-            spots: 15,
-            trainer_name: 'Rubén Castro',
-          },
-        ] }); // INSERT ... RETURNING
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 8,
+              activity: 'Fuerza',
+              room: 'Sala 3',
+              starts_at: '2026-11-10T18:00:00.000Z',
+              spots: 15,
+              trainer_name: 'Rubén Castro',
+            },
+          ],
+        }); // INSERT ... RETURNING
 
       const result = await service.create(dto);
 
@@ -147,16 +150,18 @@ describe('ClassesService', () => {
     it('borra una clase sin reservas y la devuelve con el nombre del monitor', async () => {
       pool.query
         .mockResolvedValueOnce({ rows: [{ total: '0' }] }) // COUNT bookings
-        .mockResolvedValueOnce({ rows: [
-          {
-            id: 8,
-            activity: 'Fuerza',
-            room: 'Sala 3',
-            starts_at: '2026-11-10T18:00:00.000Z',
-            spots: 15,
-            trainer_name: 'Rubén Castro',
-          },
-        ] }); // DELETE ... RETURNING
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              id: 8,
+              activity: 'Fuerza',
+              room: 'Sala 3',
+              starts_at: '2026-11-10T18:00:00.000Z',
+              spots: 15,
+              trainer_name: 'Rubén Castro',
+            },
+          ],
+        }); // DELETE ... RETURNING
 
       const result = await service.remove(8);
 

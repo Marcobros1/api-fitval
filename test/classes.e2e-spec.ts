@@ -42,7 +42,7 @@ describe('Classes (e2e)', () => {
     const created = await request(app.getHttpServer())
       .post('/api/classes')
       .send(VALID_BODY);
-    createdClassId = created.body.id;
+    createdClassId = (created.body as { id: number }).id;
   });
 
   afterAll(async () => {
@@ -57,6 +57,7 @@ describe('Classes (e2e)', () => {
         .send(VALID_BODY);
 
       expect(response.status).toBe(201);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(response.body.trainerName).toBe('Rubén Castro');
     });
 
@@ -108,6 +109,7 @@ describe('Classes (e2e)', () => {
       );
 
       expect(response.status).toBe(200);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(response.body.id).toBe(createdClassId);
     });
 
