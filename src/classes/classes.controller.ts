@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -27,5 +28,10 @@ export class ClassesController {
   @Post() //POST /api/classes
   create(@Body() dto: CreateClassDto) {
     return this.classService.create(dto);
+  }
+
+  @Delete(':id') //DELETE /api/classes/:id
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.classService.remove(id);
   }
 }

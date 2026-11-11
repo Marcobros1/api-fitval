@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Pool } from 'pg';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ClassesService } from './classes.service';
 import { CreateClassDto } from './dto/create-class.dto';
 
@@ -10,6 +14,7 @@ describe('ClassesService', () => {
 
   beforeEach(async () => {
     pool = { query: jest.fn() };
+    pool.query.mockReset();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ClassesService,
@@ -135,6 +140,58 @@ describe('ClassesService', () => {
 
       await expect(service.create(dto)).rejects.toThrow(BadRequestException);
       expect(pool.query).toHaveBeenCalledTimes(1); // no llega al INSERT
+    });
+  });
+
+  describe('remove', () => {
+    it('borra una clase sin reservas y la devuelve con el nombre del monitor', async () => {
+      pool.query
+        .mockResolvedValueOnce({ rows: [{ total: '0' }] }) // COUNT bookings
+        .mockResolvedValueOnce({ rows: [
+          {
+            id: 8,
+            activity: 'Fuerza',
+            room: 'Sala 3',
+            starts_at: '2026-11-10T18:00:00.000Z',
+            spots: 15,
+            trainer_name: 'Rubén Castro',
+          },
+        ] }); // DELETE ... RETURNING
+
+      const result = await service.remove(8);
+
+      expect(result).toEqual({
+        id: 8,
+        activity: 'Fuerza',
+        room: 'Sala 3',
+        startsAt: '2026-11-10T18:00:00.000Z',
+        spots: 15,
+        trainerName: 'Rubén Castro',
+      });
+      expect(pool.query).toHaveBeenNthCalledWith(
+        1,
+        'SELECT COUNT(*)::int AS total FROM bookings WHERE class_id = $1',
+        [8],
+      );
+      expect(pool.query).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining('DELETE FROM classes WHERE id = $1'),
+        [8],
+      );
+    });
+
+    it('lanza ConflictException si la clase tiene reservas', async () => {
+      pool.query.mockResolvedValueOnce({ rows: [{ total: '3' }] });
+
+      await expect(service.remove(1)).rejects.toThrow(ConflictException);
+    });
+
+    it('lanza NotFoundException si la clase no existe', async () => {
+      pool.query
+        .mockResolvedValueOnce({ rows: [{ total: '0' }] }) // COUNT bookings
+        .mockResolvedValueOnce({ rows: [] }); // DELETE devuelve 0 filas
+
+      await expect(service.remove(99)).rejects.toThrow(NotFoundException);
     });
   });
 });

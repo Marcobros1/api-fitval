@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -68,6 +69,37 @@ export class ClassesService {
       JOIN trainers t ON t.id = c.trainer_id`,
       [dto.activity, dto.room, dto.startsAt, dto.spots, dto.trainerId],
     );
+    return toGymClass(result.rows[0]);
+  }
+
+  // DELETE /api/classes/:id: borra una clase y la devuelve.
+  // 404 si no existe. 409 si tiene reservas.
+  async remove(id: number): Promise<GymClass> {
+    const bookings = await this.pool.query<{ total: string }>(
+      'SELECT COUNT(*)::int AS total FROM bookings WHERE class_id = $1',
+      [id],
+    );
+    if (Number(bookings.rows[0].total) > 0) {
+      throw new ConflictException(
+        `No se puede borrar la clase ${id}: tiene reservas activas`,
+      );
+    }
+
+    const result = await this.pool.query<GymClassRow>(
+      `WITH deleted AS (
+         DELETE FROM classes WHERE id = $1
+         RETURNING id, activity, room, starts_at, spots, trainer_id
+       )
+       SELECT d.id, d.activity, d.room, d.starts_at, d.spots, t.name AS trainer_name
+       FROM deleted d
+       JOIN trainers t ON t.id = d.trainer_id`,
+      [id],
+    );
+
+    if (result.rows.length === 0) {
+      throw new NotFoundException(`No existe la clase con id ${id}`);
+    }
+
     return toGymClass(result.rows[0]);
   }
 }
