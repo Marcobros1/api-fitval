@@ -1,6 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Pool } from 'pg';
 import { GymClass, GymClassRow, toGymClass } from './gymclass';
+import { CreateClassDto } from './dto/create-class.dto';
 
 // Las columnas de una clase, con el nombre del monitor (JOIN con trainers)
 const SELECT_CLASSES = `
@@ -37,6 +42,32 @@ export class ClassesService {
     if (result.rows.length === 0) {
       throw new NotFoundException(`No existe la clase con id ${id}`);
     }
+    return toGymClass(result.rows[0]);
+  }
+
+  // POST /api/classes: crea una clase y la devuelve con el nombre del monitor
+  async create(dto: CreateClassDto): Promise<GymClass> {
+    const trainerExists = await this.pool.query<{ id: number }>(
+      'SELECT id FROM trainers WHERE id = $1',
+      [dto.trainerId],
+    );
+    if (trainerExists.rows.length === 0) {
+      throw new BadRequestException(
+        `No existe el monitor con id ${dto.trainerId}`,
+      );
+    }
+
+    const result = await this.pool.query<GymClassRow>(
+      `WITH new_class AS(
+        INSERT INTO classes (activity, room, starts_at, spots, trainer_id)
+        VALUES ($1, $2, $3, $4, $5)
+          RETURNING id, activity, room, starts_at,spots, trainer_id
+        )
+      SELECT c.id, c.activity, c.room, c.starts_at, c.spots, t.name AS trainer_name
+      FROM new_class c
+      JOIN trainers t ON t.id = c.trainer_id`,
+      [dto.activity, dto.room, dto.startsAt, dto.spots, dto.trainerId],
+    );
     return toGymClass(result.rows[0]);
   }
 }
