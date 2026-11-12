@@ -5,13 +5,19 @@ import { CreateClassDto } from './dto/create-class.dto';
 
 describe('ClassesController', () => {
   let controller: ClassesController;
-  let service: { findAll: jest.Mock; findOne: jest.Mock; create: jest.Mock };
+  let service: {
+    findAll: jest.Mock;
+    findOne: jest.Mock;
+    create: jest.Mock;
+    remove: jest.Mock;
+  };
 
   beforeEach(async () => {
     service = {
       findAll: jest.fn(),
       findOne: jest.fn(),
       create: jest.fn(),
+      remove: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -68,6 +74,22 @@ describe('ClassesController', () => {
 
       expect(result).toBe(creada);
       expect(service.create).toHaveBeenCalledWith(dto);
+    });
+  });
+
+  describe('remove', () => {
+    it('delega en el servicio y devuelve la clase borrada', async () => {
+      const borrada = {
+        id: 8,
+        activity: 'Fuerza',
+        trainerName: 'Rubén Castro',
+      };
+      service.remove.mockResolvedValue(borrada);
+
+      const result = await controller.remove(8);
+
+      expect(result).toBe(borrada);
+      expect(service.remove).toHaveBeenCalledWith(8);
     });
   });
 });

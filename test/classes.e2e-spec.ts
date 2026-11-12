@@ -50,6 +50,80 @@ describe('Classes (e2e)', () => {
     await app.close();
   });
 
+  describe('GET /api/classes', () => {
+    it('devuelve 200 y las clases con el nombre del monitor', async () => {
+      const response = await request(app.getHttpServer()).get('/api/classes');
+
+      expect(response.status).toBe(200);
+      const classes = response.body as { id: number; trainerName: string }[];
+      expect(classes[0]).toMatchObject({
+        id: 1,
+        activity: 'Spinning',
+        trainerName: 'Carla Navarro',
+      });
+    });
+
+    it('filtra por actividad sin distinguir mayúsculas (yoga)', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/classes')
+        .query({ activity: 'yoga' });
+
+      expect(response.status).toBe(200);
+      const classes = response.body as { activity: string }[];
+      expect(classes).toHaveLength(2);
+      expect(classes.every((c) => c.activity === 'Yoga')).toBe(true);
+    });
+
+    it('filtra por coincidencia parcial (SPIN)', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/classes')
+        .query({ activity: 'SPIN' });
+
+      expect(response.status).toBe(200);
+      const classes = response.body as { activity: string }[];
+      expect(classes).toHaveLength(2);
+      expect(classes.every((c) => c.activity === 'Spinning')).toBe(true);
+    });
+
+    it('no se deja inyectar SQL por el filtro', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/classes')
+        .query({ activity: "zzz' OR 1=1 --" });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual([]);
+    });
+  });
+
+  describe('GET /api/classes/:id', () => {
+    it('devuelve 200 y la clase pedida', async () => {
+      const response = await request(app.getHttpServer()).get('/api/classes/7');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        id: 7,
+        activity: 'Crossfit',
+        spots: 3,
+      });
+    });
+
+    it('devuelve 400 si el id no es un número', async () => {
+      const response = await request(app.getHttpServer()).get(
+        '/api/classes/abc',
+      );
+
+      expect(response.status).toBe(400);
+    });
+
+    it('devuelve 404 si la clase no existe', async () => {
+      const response = await request(app.getHttpServer()).get(
+        '/api/classes/99999',
+      );
+
+      expect(response.status).toBe(404);
+    });
+  });
+
   describe('POST /api/classes', () => {
     it('devuelve 201 y la clase creada con el nombre del monitor', async () => {
       const response = await request(app.getHttpServer())
