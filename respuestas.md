@@ -17,3 +17,7 @@ Para devolver un 400 claro y controlado ("No existe el monitor con id X") en lug
 ## Pregunta 4: ¿por qué borrar una clase con reservas es 409 y no 400?
 
 Porque el cuerpo de la petición es sintácticamente correcto; el problema es un conflicto de negocio: la clase tiene reservas activas y borrarla rompería la integridad de quienes se habían apuntado. Es un conflicto de estado del recurso, no un error del cliente.
+
+## Pregunta 5: ¿qué datos lleva el token de Ana y por qué no metemos el rol?
+
+Lleva `{"sub":1,"iat":1794495988,"exp":1794499588}`: su id y las fechas de creación y caducidad (3600 s, una hora). No metemos el rol porque el token se queda con lo que había al hacer login y dura una hora; si cambia el rol de Ana, el token seguiría diciendo lo de antes, así que el rol se lee de la base de datos en cada petición.

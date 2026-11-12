@@ -125,8 +125,8 @@ INSERT INTO specialties (name) VALUES
 INSERT INTO trainer_specialties (trainer_id, specialty_id) VALUES
   (1, 1), (1, 5), (2, 2), (2, 3), (3, 3), (3, 4), (4, 5);
 
--- Tabla de usuarios para autenticación (apartado 4)
-CREATE TABLE IF NOT EXISTS users (
+-- Tabla de usuarios para autenticación
+CREATE TABLE users (
   id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
