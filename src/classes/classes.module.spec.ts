@@ -2,7 +2,12 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { Pool } from 'pg';
-import { AppModule } from '../app.module';
+import { JwtService } from '@nestjs/jwt';
+import { ClassesController } from './classes.controller';
+import { ClassesService } from './classes.service';
+import { UsersService } from '../users/users.service';
+import { AuthGuard } from '../auth/auth.guard';
+import { StaffGuard } from '../auth/staff.guard';
 
 describe('Classes HTTP routes', () => {
   let app: INestApplication;
@@ -12,11 +17,24 @@ describe('Classes HTTP routes', () => {
     pool = { query: jest.fn() };
 
     const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(Pool)
-      .useValue(pool)
-      .compile();
+      controllers: [ClassesController],
+      providers: [
+        ClassesService,
+        { provide: Pool, useValue: pool },
+        {
+          provide: JwtService,
+          useValue: { verifyAsync: () => Promise.resolve({ sub: 1 }) },
+        },
+        {
+          provide: UsersService,
+          useValue: {
+            findById: () => Promise.resolve({ id: 1, role: 'staff' }),
+          },
+        },
+        AuthGuard,
+        StaffGuard,
+      ],
+    }).compile();
 
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api');
@@ -126,9 +144,9 @@ describe('Classes HTTP routes', () => {
     it('devuelve 409 si la clase tiene reservas', async () => {
       pool.query.mockResolvedValueOnce({ rows: [{ total: '3' }] });
 
-      const response = await request(app.getHttpServer()).delete(
-        '/api/classes/1',
-      );
+      const response = await request(app.getHttpServer())
+        .delete('/api/classes/1')
+        .set('Authorization', 'Bearer cualquier-token');
 
       expect(response.status).toBe(409);
     });
@@ -161,6 +179,7 @@ describe('Classes HTTP routes', () => {
 
       const response = await request(app.getHttpServer())
         .post('/api/classes')
+        .set('Authorization', 'Bearer cualquier-token')
         .send(dto);
 
       expect(response.status).toBe(201);
@@ -179,6 +198,7 @@ describe('Classes HTTP routes', () => {
 
       const response = await request(app.getHttpServer())
         .post('/api/classes')
+        .set('Authorization', 'Bearer cualquier-token')
         .send({ ...dto, trainerId: 99 });
 
       expect(response.status).toBe(400);
@@ -187,6 +207,7 @@ describe('Classes HTTP routes', () => {
     it('devuelve 400 si el body es inválido', async () => {
       const response = await request(app.getHttpServer())
         .post('/api/classes')
+        .set('Authorization', 'Bearer cualquier-token')
         .send({ activity: '', room: '', spots: 0, trainerId: 0 });
 
       expect(response.status).toBe(400);

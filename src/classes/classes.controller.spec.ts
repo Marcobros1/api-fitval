@@ -1,4 +1,3 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ClassesController } from './classes.controller';
 import { ClassesService } from './classes.service';
 import { CreateClassDto } from './dto/create-class.dto';
@@ -12,20 +11,14 @@ describe('ClassesController', () => {
     remove: jest.Mock;
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     service = {
       findAll: jest.fn(),
       findOne: jest.fn(),
       create: jest.fn(),
       remove: jest.fn(),
     };
-
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [ClassesController],
-      providers: [{ provide: ClassesService, useValue: service }],
-    }).compile();
-
-    controller = module.get(ClassesController);
+    controller = new ClassesController(service as unknown as ClassesService);
   });
 
   describe('findAll', () => {

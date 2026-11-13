@@ -21,3 +21,7 @@ Porque el cuerpo de la petición es sintácticamente correcto; el problema es un
 ## Pregunta 5: ¿qué datos lleva el token de Ana y por qué no metemos el rol?
 
 Lleva `{"sub":1,"iat":1794495988,"exp":1794499588}`: su id y las fechas de creación y caducidad (3600 s, una hora). No metemos el rol porque el token se queda con lo que había al hacer login y dura una hora; si cambia el rol de Ana, el token seguiría diciendo lo de antes, así que el rol se lee de la base de datos en cada petición.
+
+## Pregunta 6: ¿por qué funciona el token de recepción sin volver a hacer login? ¿Qué pasaría si el rol fuera dentro del token?
+
+Funciona porque el token solo lleva `{"sub":2}` (el id de recepción), no el rol. El `StaffGuard` lee el rol de la base de datos en cada petición, así que al cambiar el rol a `staff` en psql, la siguiente petición con el mismo token ya pasa el guard. Si el rol estuviera dentro del token, seguiría diciendo `member` (firmado en el token original) aunque se cambiara en BD, y el acceso sería denegado hasta que recepción volviera a hacer login para obtener un token nuevo.
