@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Pool } from 'pg';
-import { GymClass, GymClassRow, toGymClass } from './gymclass';
+import { GymClass, GymClassRow, toGymClass } from './gym-class';
 import { CreateClassDto } from './dto/create-class.dto';
 
 // Las columnas de una clase, con el nombre del monitor (JOIN con trainers)
