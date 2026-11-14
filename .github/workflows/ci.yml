@@ -22,8 +22,11 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 24
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
       - name: Revisar el HTML con HTMLHint
-        run: npx --yes htmlhint@1 "**/*.html" --ignore "dist/**,build/**,coverage/**"
+        run: npx htmlhint "**/*.html" --ignore "dist/**,build/**,coverage/**"
 
   # Check 2: revisa el código TypeScript con ESLint (tu script "lint")
   lint:
