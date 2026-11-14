@@ -7,7 +7,8 @@ import { AppModule } from '../src/app.module';
 
 // Correo único por ejecución: los tests no chocan con datos de antes
 const EMAIL = `ana-e2e-${Date.now()}@gym.com`;
-const PASSWORD = '12345678';
+// Contraseña de prueba, tomada del entorno para no escribirla en el código
+const PASSWORD = process.env.TEST_PASSWORD ?? 'test-password-local';
 
 describe('Auth (e2e)', () => {
   let app: INestApplication<App>;
@@ -112,7 +113,11 @@ describe('Auth (e2e)', () => {
       const payload = JSON.parse(
         Buffer.from(token.split('.')[1], 'base64url').toString(),
       ) as Record<string, unknown>;
-      expect(Object.keys(payload).sort()).toEqual(['exp', 'iat', 'sub']);
+      expect(Object.keys(payload).sort((a, b) => a.localeCompare(b))).toEqual([
+        'exp',
+        'iat',
+        'sub',
+      ]);
       expect(Number(payload.exp) - Number(payload.iat)).toBe(3600);
     });
 
