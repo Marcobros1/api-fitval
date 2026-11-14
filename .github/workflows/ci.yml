@@ -23,8 +23,11 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      # --ignore-scripts evita scripts de terceros; argon2 se reconstruye aparte
       - name: Instalar dependencias
-        run: npm ci
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild argon2
       - name: Revisar el HTML con HTMLHint
         run: npx --no-install htmlhint "**/*.html" --ignore "dist/**,build/**,coverage/**"
 
@@ -39,7 +42,10 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      # --ignore-scripts evita scripts de terceros; argon2 se reconstruye aparte
       - name: Instalar dependencias
-        run: npm ci
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild argon2
       - name: Lint
         run: npm run lint
