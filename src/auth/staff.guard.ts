@@ -17,7 +17,7 @@ export class StaffGuard implements CanActivate {
 
     // El AuthGuard ya puso el id en la petición; ahora leemos el rol de la BD
     const user = await this.usersService.findById(request.userId);
-    if (!user || user.role !== 'staff') {
+    if (user?.role !== 'staff') {
       throw new ForbiddenException('Solo para el personal del gimnasio');
     }
 

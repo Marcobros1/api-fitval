@@ -22,8 +22,14 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 24
+          cache: npm
+      # --ignore-scripts evita scripts de terceros; argon2 se reconstruye aparte
+      - name: Instalar dependencias
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild argon2
       - name: Revisar el HTML con HTMLHint
-        run: npx --yes htmlhint@1 "**/*.html" --ignore "dist/**,build/**,coverage/**"
+        run: npx --no-install htmlhint "**/*.html" --ignore "dist/**,build/**,coverage/**"
 
   # Check 2: revisa el código TypeScript con ESLint (tu script "lint")
   lint:
@@ -36,7 +42,10 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      # --ignore-scripts evita scripts de terceros; argon2 se reconstruye aparte
       - name: Instalar dependencias
-        run: npm ci
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild argon2
       - name: Lint
         run: npm run lint
