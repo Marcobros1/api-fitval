@@ -122,9 +122,10 @@ describe('Auth (e2e)', () => {
     });
 
     it('devuelve 401 si la contraseña está mal', async () => {
+      const wrongPassword = `${PASSWORD}-incorrecta`;
       const response = await request(app.getHttpServer())
         .post('/api/auth/login')
-        .send({ email: EMAIL, password: 'contraseña-mal' });
+        .send({ email: EMAIL, password: wrongPassword });
 
       expect(response.status).toBe(401);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
