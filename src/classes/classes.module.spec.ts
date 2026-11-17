@@ -9,6 +9,15 @@ import { UsersService } from '../users/users.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { StaffGuard } from '../auth/staff.guard';
 
+interface ClassResponse {
+  id: number;
+  activity: string;
+  room: string;
+  startsAt: string;
+  spots: number;
+  trainerName: string;
+}
+
 describe('Classes HTTP routes', () => {
   let app: INestApplication;
   let pool: { query: jest.Mock };
@@ -63,7 +72,8 @@ describe('Classes HTTP routes', () => {
       const response = await request(app.getHttpServer()).get('/api/classes');
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual([
+      const body = response.body as ClassResponse[];
+      expect(body).toEqual([
         {
           id: 1,
           activity: 'Spinning',
@@ -97,9 +107,9 @@ describe('Classes HTTP routes', () => {
 
       expect(response.status).toBe(200);
 
-      expect(response.body as any[]).toHaveLength(1);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect((response.body as any[])[0].activity).toBe('Yoga');
+      const body = response.body as ClassResponse[];
+      expect(body).toHaveLength(1);
+      expect(body[0].activity).toBe('Yoga');
       expect(pool.query).toHaveBeenCalledWith(
         expect.stringContaining('ILIKE $1'),
         ['%yoga%'],
@@ -125,10 +135,9 @@ describe('Classes HTTP routes', () => {
       const response = await request(app.getHttpServer()).get('/api/classes/7');
 
       expect(response.status).toBe(200);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(response.body.id).toBe(7);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(response.body.activity).toBe('Crossfit');
+      const body = response.body as ClassResponse;
+      expect(body.id).toBe(7);
+      expect(body.activity).toBe('Crossfit');
     });
 
     it('devuelve 404 si la clase no existe', async () => {
@@ -183,7 +192,8 @@ describe('Classes HTTP routes', () => {
         .send(dto);
 
       expect(response.status).toBe(201);
-      expect(response.body).toEqual({
+      const body = response.body as ClassResponse;
+      expect(body).toEqual({
         id: 8,
         activity: 'Fuerza',
         room: 'Sala 3',
