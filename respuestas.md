@@ -2,26 +2,32 @@
 
 error: GH013: Repository rule violations found for refs/heads/main.
 
-## Pregunta 1: ¿qué código recibe el cliente con PostgreSQL parado? ¿Qué ves en la terminal que el cliente no ve? ¿Por qué es mejor así?
+## Pregunta 1
 
-Con PostgreSQL parado, el cliente recibe HTTP 500 con {"statusCode":500,"message":"Internal server error"}. En la terminal de NestJS aparece el error completo: ECONNREFUSED en ::1:5433 y 127.0.0.1:5433, con la traza de la conexión. Es mejor así porque el cliente no ve detalles internos (puerto, dirección ni traza) y el log del servidor conserva lo necesario para diagnosticar.
+El cliente recibe HTTP 500 con mensaje genérico. En la terminal aparece el error completo de conexión (ECONNREFUSED). Es mejor así porque el cliente no ve detalles internos y el servidor conserva el log para diagnosticar.
 
-## Pregunta 2: ¿cuántas clases salen con cada versión? Explica qué ha pasado con la consulta en la versión mala.
+## Pregunta 2
 
-Con la versión que pega el texto en el SQL salen las 7 clases y con $1 salen 0. En la mala, a PostgreSQL le llega `WHERE c.activity ILIKE '%zzz' OR 1=1 --%' ORDER BY c.starts_at`: la comilla cierra el texto, OR 1=1 siempre es verdadero y -- comenta el resto, mientras que con $1 el valor viaja aparte y se trata solo como texto.
+Con el texto pegado en el SQL salen las 7 clases (inyección); con `$1` salen 0. En la versión mala, PostgreSQL recibe `ILIKE '%zzz' OR 1=1 --%'`, donde `OR 1=1` es siempre verdadero y `--` comenta el resto.
 
-## Pregunta 3: PostgreSQL ya tiene una clave ajena en trainer_id. ¿Para qué comprobamos en la API que el monitor existe? ¿Qué recibiría el cliente si no lo hiciéramos?
+## Pregunta 3
 
-Para devolver un 400 claro y controlado ("No existe el monitor con id X") en lugar de que PostgreSQL lance un error 500 con el detalle crudo de la clave ajena (código 23503). Sin la comprobación, el cliente recibiría un error 500 con información interna de la base de datos.
+Para devolver un 400 claro y controlado en lugar de un 500 con el error crudo de la clave ajena (código 23503). Sin la comprobación, el cliente vería información interna de la base de datos.
 
-## Pregunta 4: ¿por qué borrar una clase con reservas es 409 y no 400?
+## Pregunta 4
 
-Porque el cuerpo de la petición es sintácticamente correcto; el problema es un conflicto de negocio: la clase tiene reservas activas y borrarla rompería la integridad de quienes se habían apuntado. Es un conflicto de estado del recurso, no un error del cliente.
+Porque el cuerpo de la petición es correcto; el problema es un conflicto de negocio: la clase tiene reservas activas y borrarla rompería la integridad de quienes se habían apuntado.
 
-## Pregunta 5: ¿qué datos lleva el token de Ana y por qué no metemos el rol?
+## Pregunta 5
 
-Lleva `{"sub":1,"iat":1794495988,"exp":1794499588}`: su id y las fechas de creación y caducidad (3600 s, una hora). No metemos el rol porque el token se queda con lo que había al hacer login y dura una hora; si cambia el rol de Ana, el token seguiría diciendo lo de antes, así que el rol se lee de la base de datos en cada petición.
+Lleva `{"sub":1,"iat":...,"exp":...}`: su id y las fechas de creación y caducidad. No metemos el rol porque el token dura una hora; si cambia el rol, el token seguiría diciendo lo de antes, así que el rol se lee de la BD en cada petición.
 
-## Pregunta 6: ¿por qué funciona el token de recepción sin volver a hacer login? ¿Qué pasaría si el rol fuera dentro del token?
+## Pregunta 6
 
-Funciona porque el token solo lleva `{"sub":2}` (el id de recepción), no el rol. El `StaffGuard` lee el rol de la base de datos en cada petición, así que al cambiar el rol a `staff` en psql, la siguiente petición con el mismo token ya pasa el guard. Si el rol estuviera dentro del token, seguiría diciendo `member` (firmado en el token original) aunque se cambiara en BD, y el acceso sería denegado hasta que recepción volviera a hacer login para obtener un token nuevo.
+Funciona porque el token solo lleva `{"sub":2}`, no el rol. El `StaffGuard` lee el rol de la BD en cada petición, así que al cambiarlo a `staff` en psql, el mismo token ya pasa. Si el rol estuviera en el token, seguiría diciendo `member` hasta que hiciera login de nuevo.
+
+## Pregunta 7
+
+No necesita PostgreSQL porque usa un `Pool` falso (`jest.fn()`) que simula las respuestas en memoria.
+
+No puede comprobar que las consultas SQL sean correctas, que las tablas existan, ni que las claves foráneas funcionen. Solo comprueba que el servicio reaccione a lo que el `Pool` falso devuelve.
