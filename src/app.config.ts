@@ -3,6 +3,7 @@ import {
   ValidationPipe,
   VersioningType,
 } from '@nestjs/common';
+import helmet from 'helmet';
 
 export function configureApp(app: INestApplication): void {
   app.setGlobalPrefix('api');
@@ -11,6 +12,13 @@ export function configureApp(app: INestApplication): void {
     type: VersioningType.URI,
     defaultVersion: '1',
   });
+
+  app.use(helmet());
+
+  // trust proxy para que el rate limiter funcione detrás de proxy (Render, nginx, etc.)
+  const httpAdapter = app.getHttpAdapter();
+  const instance = httpAdapter.getInstance();
+  instance.set('trust proxy', 1);
 
   app.useGlobalPipes(
     new ValidationPipe({
