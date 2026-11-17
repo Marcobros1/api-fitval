@@ -18,6 +18,15 @@ export interface GymClass {
   trainerName: string;
 }
 
+// Respuesta paginada para v2
+export interface GymClassPage {
+  data: GymClass[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 // Convierte una fila en una clase de la API
 export function toGymClass(row: GymClassRow): GymClass {
   return {
