@@ -96,7 +96,7 @@ describe('Classes HTTP routes', () => {
         .query({ activity: 'yoga' });
 
       expect(response.status).toBe(200);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
       expect(response.body as any[]).toHaveLength(1);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect((response.body as any[])[0].activity).toBe('Yoga');
