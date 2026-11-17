@@ -25,3 +25,9 @@ Lleva `{"sub":1,"iat":1794495988,"exp":1794499588}`: su id y las fechas de creac
 ## Pregunta 6: ¿por qué funciona el token de recepción sin volver a hacer login? ¿Qué pasaría si el rol fuera dentro del token?
 
 Funciona porque el token solo lleva `{"sub":2}` (el id de recepción), no el rol. El `StaffGuard` lee el rol de la base de datos en cada petición, así que al cambiar el rol a `staff` en psql, la siguiente petición con el mismo token ya pasa el guard. Si el rol estuviera dentro del token, seguiría diciendo `member` (firmado en el token original) aunque se cambiara en BD, y el acceso sería denegado hasta que recepción volviera a hacer login para obtener un token nuevo.
+
+## Pregunta 7: ¿por qué el test del Ejercicio 6.4 no necesita PostgreSQL? ¿Qué no puede comprobar un test con un `Pool` falso?
+
+No necesita PostgreSQL porque usa un `Pool` falso (`jest.fn()`) que simula las respuestas de la base de datos en memoria, sin abrir ninguna conexión real.
+
+No puede comprobar que las consultas SQL sean sintácticamente correctas, que las tablas existan, que las claves foráneas funcionen, ni que PostgreSQL devuelva los datos en el formato esperado. Solo comprueba que el servicio reaccione correctamente a lo que el `Pool` falso devuelve.
