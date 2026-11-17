@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
+import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { Pool } from 'pg';
 import { AppModule } from '../src/app.module';
+import { configureApp } from '../src/app.config';
 
 // Correo único por ejecución: los tests no chocan con datos de antes
 const EMAIL = `ana-e2e-${Date.now()}@gym.com`;
@@ -25,14 +26,7 @@ describe('Auth (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api');
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
+    configureApp(app);
     pool = moduleFixture.get(Pool);
     await app.init();
   });
@@ -43,10 +37,10 @@ describe('Auth (e2e)', () => {
     await app.close();
   });
 
-  describe('POST /api/auth/register', () => {
+  describe('POST /api/v1/auth/register', () => {
     it('devuelve 201 con role member y sin contraseña ni hash', async () => {
       const response = await request(app.getHttpServer())
-        .post('/api/auth/register')
+        .post('/api/v1/auth/register')
         .send({ email: EMAIL, password: PASSWORD });
 
       expect(response.status).toBe(201);
@@ -69,7 +63,7 @@ describe('Auth (e2e)', () => {
 
     it('devuelve 409 si el correo ya está registrado', async () => {
       const response = await request(app.getHttpServer())
-        .post('/api/auth/register')
+        .post('/api/v1/auth/register')
         .send({ email: EMAIL, password: PASSWORD });
 
       expect(response.status).toBe(409);
@@ -77,7 +71,7 @@ describe('Auth (e2e)', () => {
 
     it('devuelve 400 si el email no es válido', async () => {
       const response = await request(app.getHttpServer())
-        .post('/api/auth/register')
+        .post('/api/v1/auth/register')
         .send({ email: 'ana', password: PASSWORD });
 
       expect(response.status).toBe(400);
@@ -85,7 +79,7 @@ describe('Auth (e2e)', () => {
 
     it('devuelve 400 si la contraseña tiene menos de 8 caracteres', async () => {
       const response = await request(app.getHttpServer())
-        .post('/api/auth/register')
+        .post('/api/v1/auth/register')
         .send({ email: 'luis-e2e@gym.com', password: '123' });
 
       expect(response.status).toBe(400);
@@ -93,17 +87,17 @@ describe('Auth (e2e)', () => {
 
     it('devuelve 400 si llega un campo de más (role)', async () => {
       const response = await request(app.getHttpServer())
-        .post('/api/auth/register')
+        .post('/api/v1/auth/register')
         .send({ email: 'luis-e2e@gym.com', password: PASSWORD, role: 'staff' });
 
       expect(response.status).toBe(400);
     });
   });
 
-  describe('POST /api/auth/login', () => {
+  describe('POST /api/v1/auth/login', () => {
     it('devuelve 200 con un token que solo lleva el id', async () => {
       const response = await request(app.getHttpServer())
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({ email: EMAIL, password: PASSWORD });
 
       expect(response.status).toBe(200);
@@ -124,7 +118,7 @@ describe('Auth (e2e)', () => {
     it('devuelve 401 si la contraseña está mal', async () => {
       const invalidInput = 'xyz-wrong-pass-xyz';
       const response = await request(app.getHttpServer())
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({ email: EMAIL, password: invalidInput });
 
       expect(response.status).toBe(401);
@@ -134,7 +128,7 @@ describe('Auth (e2e)', () => {
 
     it('devuelve 401 con el mismo mensaje si el correo no existe', async () => {
       const response = await request(app.getHttpServer())
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({ email: 'noexiste-e2e@gym.com', password: PASSWORD });
 
       expect(response.status).toBe(401);
@@ -143,10 +137,10 @@ describe('Auth (e2e)', () => {
     });
   });
 
-  describe('GET /api/auth/me', () => {
+  describe('GET /api/v1/auth/me', () => {
     it('devuelve 200 y los datos del usuario con su token', async () => {
       const response = await request(app.getHttpServer())
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
@@ -158,7 +152,9 @@ describe('Auth (e2e)', () => {
     });
 
     it('devuelve 401 sin token', async () => {
-      const response = await request(app.getHttpServer()).get('/api/auth/me');
+      const response = await request(app.getHttpServer()).get(
+        '/api/v1/auth/me',
+      );
 
       expect(response.status).toBe(401);
     });
@@ -168,7 +164,7 @@ describe('Auth (e2e)', () => {
       const tampered = token.slice(0, -1) + (last === 'A' ? 'B' : 'A');
 
       const response = await request(app.getHttpServer())
-        .get('/api/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${tampered}`);
 
       expect(response.status).toBe(401);

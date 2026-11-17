@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
+import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { Pool } from 'pg';
 import { AppModule } from '../src/app.module';
+import { configureApp } from '../src/app.config';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -18,14 +19,7 @@ describe('AppController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api');
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
+    configureApp(app);
     pool = moduleFixture.get(Pool);
     await app.init();
   });
@@ -35,8 +29,8 @@ describe('AppController (e2e)', () => {
     await app.close();
   });
 
-  it('GET /api/health devuelve 200 con estado de la API y la base de datos', async () => {
-    const response = await request(app.getHttpServer()).get('/api/health');
+  it('GET /api/v1/health devuelve 200 con estado de la API y la base de datos', async () => {
+    const response = await request(app.getHttpServer()).get('/api/v1/health');
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({

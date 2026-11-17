@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ClassesService } from './classes.service';
 import { CreateClassDto } from './dto/create-class.dto';
+import { ListClassesQueryDto } from './dto/list-classes-query.dto';
 
 describe('ClassesService', () => {
   let service: ClassesService;
@@ -197,6 +198,45 @@ describe('ClassesService', () => {
         .mockResolvedValueOnce({ rows: [] }); // DELETE devuelve 0 filas
 
       await expect(service.remove(99)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('findPage', () => {
+    const spinningRow = {
+      id: 1,
+      activity: 'Spinning',
+      room: 'Sala 1',
+      starts_at: new Date('2026-11-02T09:00:00Z'),
+      spots: 12,
+      trainer_name: 'Carla Navarro',
+    };
+
+    it('devuelve paginación correcta con total y totalPages', async () => {
+      // findPage hace primero COUNT (total) y luego SELECT con LIMIT/OFFSET
+      pool.query
+        .mockResolvedValueOnce({ rows: [{ total: '7' }] }) // 1ª query: COUNT total
+        .mockResolvedValueOnce({ rows: [spinningRow] }); // 2ª query: SELECT con LIMIT
+
+      const query: ListClassesQueryDto = { page: 1, limit: 3 };
+      const result = await service.findPage(query);
+
+      expect(result).toEqual({
+        data: [
+          {
+            id: 1,
+            activity: 'Spinning',
+            room: 'Sala 1',
+            startsAt: new Date('2026-11-02T09:00:00Z'),
+            spots: 12,
+            trainerName: 'Carla Navarro',
+          },
+        ],
+        total: 7,
+        page: 1,
+        limit: 3,
+        totalPages: 3,
+      });
+      expect(pool.query).toHaveBeenCalledTimes(2);
     });
   });
 });

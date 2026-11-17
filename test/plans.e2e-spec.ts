@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
+import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { Pool } from 'pg';
 import { AppModule } from '../src/app.module';
+import { configureApp } from '../src/app.config';
 
 describe('Plans (e2e)', () => {
   let app: INestApplication<App>;
@@ -18,14 +19,7 @@ describe('Plans (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api');
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
+    configureApp(app);
     pool = moduleFixture.get(Pool);
     await app.init();
   });
@@ -35,8 +29,8 @@ describe('Plans (e2e)', () => {
     await app.close();
   });
 
-  it('GET /api/plans devuelve 200 y los planes ordenados por precio', async () => {
-    const response = await request(app.getHttpServer()).get('/api/plans');
+  it('GET /api/v1/plans devuelve 200 y los planes ordenados por precio', async () => {
+    const response = await request(app.getHttpServer()).get('/api/v1/plans');
 
     expect(response.status).toBe(200);
     const plans = response.body as { monthlyPrice: number }[];

@@ -5,8 +5,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Pool } from 'pg';
-import { GymClass, GymClassRow, toGymClass } from './gym-class';
+import { GymClass, GymClassPage, GymClassRow, toGymClass } from './gym-class';
 import { CreateClassDto } from './dto/create-class.dto';
+import { ListClassesQueryDto } from './dto/list-classes-query.dto';
 
 // Las columnas de una clase, con el nombre del monitor (JOIN con trainers)
 const SELECT_CLASSES = `
@@ -101,5 +102,58 @@ export class ClassesService {
     }
 
     return toGymClass(result.rows[0]);
+  }
+
+  // GET /api/v2/classes: paginación, ordenación y filtro
+  async findPage(query: ListClassesQueryDto): Promise<GymClassPage> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const sort = query.sort ?? 'startsAt';
+    const order = query.order ?? 'asc';
+    const activity = query.activity;
+
+    // Mapear campos de la API a columnas de la BD
+    const SORT_COLUMNS = {
+      startsAt: 'c.starts_at',
+      activity: 'c.activity',
+      spots: 'c.spots',
+    };
+    const sortColumn = SORT_COLUMNS[sort];
+    const direction = order.toUpperCase();
+
+    // Construir WHERE para el filtro
+    let whereClause = '';
+    const params: (string | number)[] = [];
+    if (activity) {
+      whereClause = 'WHERE c.activity ILIKE $1';
+      params.push(`%${activity}%`);
+    }
+
+    // Total de registros (para totalPages)
+    const countResult = await this.pool.query<{ total: string }>(
+      `SELECT COUNT(*)::int AS total FROM classes c ${whereClause}`,
+      params,
+    );
+    const total = Number(countResult.rows[0].total);
+    const totalPages = Math.ceil(total / limit);
+
+    // Registros paginados
+    const offset = (page - 1) * limit;
+
+    // Añadir limit y offset a los parámetros
+    const pageParams = [...params, limit, offset];
+
+    const result = await this.pool.query<GymClassRow>(
+      `${SELECT_CLASSES} ${whereClause} ORDER BY ${sortColumn} ${direction}, c.id LIMIT $${pageParams.length - 1} OFFSET $${pageParams.length}`,
+      pageParams,
+    );
+
+    return {
+      data: result.rows.map(toGymClass),
+      total,
+      page,
+      limit,
+      totalPages,
+    };
   }
 }

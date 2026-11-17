@@ -35,3 +35,7 @@ No puede comprobar que las consultas SQL sean correctas, que las tablas existan,
 ## Pregunta 8
 
 `Date.now()` genera un correo único por ejecución para evitar colisiones. Si usara un correo fijo, la segunda ejecución fallaría con 409 (conflicto: el usuario ya existe).
+
+## Pregunta 9
+
+El `ORDER BY` usa interpolación pero el valor viene de un objeto `SORT_COLUMNS` que mapea claves permitidas a columnas reales. El input del usuario nunca toca el SQL directamente: `sort=id;DROP TABLE` no existe en el mapa, así que `SORT_COLUMNS[sort]` es `undefined` y la validación del DTO (`IsEnum`) lo rechaza con 400 antes de llegar al servicio.
