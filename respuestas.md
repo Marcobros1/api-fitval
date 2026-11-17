@@ -31,3 +31,7 @@ Funciona porque el token solo lleva `{"sub":2}`, no el rol. El `StaffGuard` lee 
 No necesita PostgreSQL porque usa un `Pool` falso (`jest.fn()`) que simula las respuestas en memoria.
 
 No puede comprobar que las consultas SQL sean correctas, que las tablas existan, ni que las claves foráneas funcionen. Solo comprueba que el servicio reaccione a lo que el `Pool` falso devuelve.
+
+## Pregunta 8
+
+`Date.now()` genera un correo único por ejecución para evitar colisiones. Si usara un correo fijo, la segunda ejecución fallaría con 409 (conflicto: el usuario ya existe).
