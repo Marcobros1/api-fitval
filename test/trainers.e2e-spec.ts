@@ -77,6 +77,14 @@ describe('Trainers (e2e)', () => {
     return (response.body as { accessToken: string }).accessToken;
   }
 
+  // POST /api/v1/trainers con un token (o sin él, si token es undefined)
+  function postTrainer(body: unknown, token?: string) {
+    const req = request(app.getHttpServer()).post('/api/v1/trainers');
+    return (token ? req.set('Authorization', `Bearer ${token}`) : req).send(
+      body as object,
+    );
+  }
+
   describe('GET /api/v1/trainers/:id', () => {
     it('devuelve 200 con el monitor y sus especialidades, sin el DNI', async () => {
       const response = await request(app.getHttpServer()).get(
@@ -115,54 +123,35 @@ describe('Trainers (e2e)', () => {
 
   describe('POST /api/v1/trainers', () => {
     it('devuelve 401 sin token', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/api/v1/trainers')
-        .send(VALID_BODY);
+      const response = await postTrainer(VALID_BODY);
 
       expect(response.status).toBe(401);
     });
 
     it('devuelve 403 si el token es de un socio', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/api/v1/trainers')
-        .set('Authorization', `Bearer ${memberToken}`)
-        .send(VALID_BODY);
+      const response = await postTrainer(VALID_BODY, memberToken);
 
       expect(response.status).toBe(403);
     });
 
-    it('devuelve 400 si specialtyIds llega vacío', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/api/v1/trainers')
-        .set('Authorization', `Bearer ${staffToken}`)
-        .send({ ...VALID_BODY, specialtyIds: [] });
-
-      expect(response.status).toBe(400);
-    });
-
-    it('devuelve 400 si specialtyIds tiene ids repetidos', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/api/v1/trainers')
-        .set('Authorization', `Bearer ${staffToken}`)
-        .send({ ...VALID_BODY, specialtyIds: [2, 2] });
-
-      expect(response.status).toBe(400);
-    });
-
-    it('devuelve 400 si el DNI no tiene 9 caracteres', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/api/v1/trainers')
-        .set('Authorization', `Bearer ${staffToken}`)
-        .send({ ...VALID_BODY, dni: '123' });
+    it.each([
+      ['specialtyIds llega vacío', { specialtyIds: [] }],
+      ['specialtyIds tiene ids repetidos', { specialtyIds: [2, 2] }],
+      ['el DNI no tiene 9 caracteres', { dni: '123' }],
+    ])('devuelve 400 si %s', async (_motivo, cambio) => {
+      const response = await postTrainer(
+        { ...VALID_BODY, ...cambio },
+        staffToken,
+      );
 
       expect(response.status).toBe(400);
     });
 
     it('devuelve 400 si una especialidad no existe y no guarda al monitor', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/api/v1/trainers')
-        .set('Authorization', `Bearer ${staffToken}`)
-        .send({ ...VALID_BODY, specialtyIds: [2, 99] });
+      const response = await postTrainer(
+        { ...VALID_BODY, specialtyIds: [2, 99] },
+        staffToken,
+      );
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty(
@@ -177,10 +166,7 @@ describe('Trainers (e2e)', () => {
     });
 
     it('devuelve 201 con el monitor creado y sus especialidades', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/api/v1/trainers')
-        .set('Authorization', `Bearer ${staffToken}`)
-        .send(VALID_BODY);
+      const response = await postTrainer(VALID_BODY, staffToken);
 
       expect(response.status).toBe(201);
       expect(response.body).toEqual({
@@ -192,10 +178,7 @@ describe('Trainers (e2e)', () => {
     });
 
     it('devuelve 409 si el DNI ya existe', async () => {
-      const response = await request(app.getHttpServer())
-        .post('/api/v1/trainers')
-        .set('Authorization', `Bearer ${staffToken}`)
-        .send(VALID_BODY);
+      const response = await postTrainer(VALID_BODY, staffToken);
 
       expect(response.status).toBe(409);
     });

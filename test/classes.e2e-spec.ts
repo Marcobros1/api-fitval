@@ -233,10 +233,12 @@ describe('Classes (e2e)', () => {
   });
 
   describe('GET /api/v2/classes (paginación)', () => {
+    // Pide una página de la v2 con los parámetros de la consulta
+    const getPage = (query: Record<string, unknown>) =>
+      request(app.getHttpServer()).get('/api/v2/classes').query(query);
+
     it('devuelve 200 con 3 clases en data y los metadatos de la página', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/api/v2/classes')
-        .query({ page: 1, limit: 3 });
+      const response = await getPage({ page: 1, limit: 3 });
 
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
@@ -249,34 +251,13 @@ describe('Classes (e2e)', () => {
       expect(body.total).toBeGreaterThanOrEqual(3);
     });
 
-    it('devuelve 400 si limit es mayor que 50', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/api/v2/classes')
-        .query({ limit: 100 });
-
-      expect(response.status).toBe(400);
-    });
-
-    it('devuelve 400 si page es 0', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/api/v2/classes')
-        .query({ page: 0 });
-
-      expect(response.status).toBe(400);
-    });
-
-    it('devuelve 400 si sort no está en la lista permitida', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/api/v2/classes')
-        .query({ sort: 'price' });
-
-      expect(response.status).toBe(400);
-    });
-
-    it('devuelve 400 si order no es asc ni desc', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/api/v2/classes')
-        .query({ order: 'up' });
+    it.each([
+      ['limit es mayor que 50', { limit: 100 }],
+      ['page es 0', { page: 0 }],
+      ['sort no está en la lista permitida', { sort: 'price' }],
+      ['order no es asc ni desc', { order: 'up' }],
+    ])('devuelve 400 si %s', async (_motivo, query) => {
+      const response = await getPage(query);
 
       expect(response.status).toBe(400);
     });
