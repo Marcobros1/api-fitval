@@ -1,10 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from '../src/app.module';
-import { configureApp } from '../src/app.config';
+import {
+  createUser,
+  loginAs,
+  startApp,
+} from './helpers/app.helper';
 
 const VALID_BODY = {
   activity: 'Fuerza',
@@ -18,7 +20,6 @@ const VALID_BODY = {
 const RUN_ID = Date.now();
 const STAFF_EMAIL = `staff-e2e-${RUN_ID}@gym.com`;
 const MEMBER_EMAIL = `member-e2e-${RUN_ID}@gym.com`;
-const PASSWORD = '12345678';
 
 describe('Classes (e2e)', () => {
   let app: INestApplication<App>;
@@ -28,33 +29,13 @@ describe('Classes (e2e)', () => {
   let createdClassId: number;
 
   beforeAll(async () => {
-    process.env.DATABASE_URL =
-      'postgres://alumno:alumno_dev_123@localhost:5433/fitval';
-    process.env.JWT_SECRET = 'secreto-solo-para-tests-e2e';
+    ({ app, pool } = await startApp());
 
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    await createUser(app, pool, STAFF_EMAIL, true);
+    await createUser(app, pool, MEMBER_EMAIL);
 
-    app = moduleFixture.createNestApplication();
-    configureApp(app);
-    pool = moduleFixture.get(Pool);
-    await app.init();
-
-    // Un miembro y un staff de prueba. El staff se hace staff por SQL
-    // (la API no permite elegir el rol al registrarse)
-    await request(app.getHttpServer())
-      .post('/api/v1/auth/register')
-      .send({ email: STAFF_EMAIL, password: PASSWORD });
-    await request(app.getHttpServer())
-      .post('/api/v1/auth/register')
-      .send({ email: MEMBER_EMAIL, password: PASSWORD });
-    await pool.query("UPDATE users SET role = 'staff' WHERE email = $1", [
-      STAFF_EMAIL,
-    ]);
-
-    staffToken = await loginAs(STAFF_EMAIL);
-    memberToken = await loginAs(MEMBER_EMAIL);
+    staffToken = await loginAs(app, STAFF_EMAIL);
+    memberToken = await loginAs(app, MEMBER_EMAIL);
 
     // Crear la clase válida para las pruebas de DELETE
     const created = await request(app.getHttpServer())
@@ -72,13 +53,6 @@ describe('Classes (e2e)', () => {
     await app.close();
   });
 
-  async function loginAs(email: string): Promise<string> {
-    const response = await request(app.getHttpServer())
-      .post('/api/v1/auth/login')
-      .send({ email, password: PASSWORD });
-    return (response.body as { accessToken: string }).accessToken;
-  }
-
   describe('GET /api/v1/classes', () => {
     it('devuelve 200 y las clases con el nombre del monitor', async () => {
       const response = await request(app.getHttpServer()).get(
@@ -94,26 +68,18 @@ describe('Classes (e2e)', () => {
       });
     });
 
-    it('filtra por actividad sin distinguir mayúsculas (yoga)', async () => {
+    it.each([
+      ['sin distinguir mayúsculas (yoga)', 'yoga', 'Yoga'],
+      ['coincidencia parcial (SPIN)', 'SPIN', 'Spinning'],
+    ])('filtra por actividad %s', async (_motivo, activity, expected) => {
       const response = await request(app.getHttpServer())
         .get('/api/v1/classes')
-        .query({ activity: 'yoga' });
+        .query({ activity });
 
       expect(response.status).toBe(200);
       const classes = response.body as { activity: string }[];
       expect(classes).toHaveLength(2);
-      expect(classes.every((c) => c.activity === 'Yoga')).toBe(true);
-    });
-
-    it('filtra por coincidencia parcial (SPIN)', async () => {
-      const response = await request(app.getHttpServer())
-        .get('/api/v1/classes')
-        .query({ activity: 'SPIN' });
-
-      expect(response.status).toBe(200);
-      const classes = response.body as { activity: string }[];
-      expect(classes).toHaveLength(2);
-      expect(classes.every((c) => c.activity === 'Spinning')).toBe(true);
+      expect(classes.every((c) => c.activity === expected)).toBe(true);
     });
 
     it('no se deja inyectar SQL por el filtro', async () => {

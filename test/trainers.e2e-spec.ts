@@ -1,16 +1,17 @@
 import { INestApplication } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from '../src/app.module';
-import { configureApp } from '../src/app.config';
+import {
+  createUser,
+  loginAs,
+  startApp,
+} from './helpers/app.helper';
 
 // Usuarios de prueba con correo único por ejecución
 const RUN_ID = Date.now();
 const STAFF_EMAIL = `staff-trainers-${RUN_ID}@gym.com`;
 const MEMBER_EMAIL = `member-trainers-${RUN_ID}@gym.com`;
-const PASSWORD = '12345678';
 
 // Un monitor válido. El DNI y el correo cambian en cada ejecución: así no chocan
 // con lo que haya quedado de otras pruebas (si no, un 409 taparía el 400 que se quiere probar)
@@ -28,32 +29,13 @@ describe('Trainers (e2e)', () => {
   let memberToken: string;
 
   beforeAll(async () => {
-    process.env.DATABASE_URL =
-      'postgres://alumno:alumno_dev_123@localhost:5433/fitval';
-    process.env.JWT_SECRET = 'secreto-solo-para-tests-e2e';
+    ({ app, pool } = await startApp());
 
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    await createUser(app, pool, STAFF_EMAIL, true);
+    await createUser(app, pool, MEMBER_EMAIL);
 
-    app = moduleFixture.createNestApplication();
-    configureApp(app);
-    pool = moduleFixture.get(Pool);
-    await app.init();
-
-    // El staff se hace staff por SQL: la API no deja elegir el rol al registrarse
-    await request(app.getHttpServer())
-      .post('/api/v1/auth/register')
-      .send({ email: STAFF_EMAIL, password: PASSWORD });
-    await request(app.getHttpServer())
-      .post('/api/v1/auth/register')
-      .send({ email: MEMBER_EMAIL, password: PASSWORD });
-    await pool.query("UPDATE users SET role = 'staff' WHERE email = $1", [
-      STAFF_EMAIL,
-    ]);
-
-    staffToken = await loginAs(STAFF_EMAIL);
-    memberToken = await loginAs(MEMBER_EMAIL);
+    staffToken = await loginAs(app, STAFF_EMAIL);
+    memberToken = await loginAs(app, MEMBER_EMAIL);
   });
 
   afterAll(async () => {
@@ -69,13 +51,6 @@ describe('Trainers (e2e)', () => {
     await pool.end();
     await app.close();
   });
-
-  async function loginAs(email: string): Promise<string> {
-    const response = await request(app.getHttpServer())
-      .post('/api/v1/auth/login')
-      .send({ email, password: PASSWORD });
-    return (response.body as { accessToken: string }).accessToken;
-  }
 
   // POST /api/v1/trainers con un token (o sin él, si token es undefined)
   function postTrainer(body: unknown, token?: string) {
