@@ -86,14 +86,12 @@ describe('TrainersService', () => {
         rows: [{ id: 5 }],
       }); // INSERT trainer RETURNING id
 
-      // Check specialty 2 exists
+      // Promise.all: check all specialties (2 calls)
       mockClient.query.mockResolvedValueOnce({ rows: [{ id: 2 }] });
-      // Insert trainer_specialties for specialty 2
-      mockClient.query.mockResolvedValueOnce({ rows: [] });
-
-      // Check specialty 3 exists
       mockClient.query.mockResolvedValueOnce({ rows: [{ id: 3 }] });
-      // Insert trainer_specialties for specialty 3
+
+      // Promise.all: insert all specialties (2 calls)
+      mockClient.query.mockResolvedValueOnce({ rows: [] });
       mockClient.query.mockResolvedValueOnce({ rows: [] });
 
       // COMMIT
@@ -136,8 +134,12 @@ describe('TrainersService', () => {
     it('hace ROLLBACK y lanza BadRequestException si la especialidad no existe', async () => {
       mockClient.query.mockResolvedValueOnce({ rows: [] }); // BEGIN
       mockClient.query.mockResolvedValueOnce({ rows: [{ id: 5 }] }); // INSERT trainer
-      mockClient.query.mockResolvedValueOnce({ rows: [] }); // specialty check - NOT FOUND
-      mockClient.query.mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+
+      // Promise.all: check specialties (1 call for the single specialty)
+      mockClient.query.mockResolvedValueOnce({ rows: [] }); // NOT FOUND
+
+      // ROLLBACK
+      mockClient.query.mockResolvedValueOnce({ rows: [] });
 
       await expect(
         service.create({ ...createDto, specialtyIds: [{ id: 99 }] }),

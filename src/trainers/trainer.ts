@@ -29,6 +29,6 @@ export function toTrainer(rows: TrainerRow[]): Trainer | null {
     specialties: rows
       .map((r) => r.specialty)
       .filter((s): s is string => s !== null)
-      .sort(),
+      .sort((a, b) => a.localeCompare(b)),
   };
 }

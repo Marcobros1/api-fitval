@@ -52,22 +52,29 @@ export class TrainersService {
 
       const trainerId = trainerResult.rows[0].id;
 
-      // 2. Insertar especialidades
-      for (const sp of dto.specialtyIds) {
-        // Verificar que existe la especialidad
-        const specCheck = await client.query(
-          'SELECT id FROM specialties WHERE id = $1',
-          [sp.id],
-        );
-        if (specCheck.rows.length === 0) {
-          throw new BadRequestException(`No existe la especialidad ${sp.id}`);
+      // 2. Verificar todas las especialidades (Promise.all evita await en loop)
+      const specialtyChecks = await Promise.all(
+        dto.specialtyIds.map((sp) =>
+          client.query('SELECT id FROM specialties WHERE id = $1', [sp.id]),
+        ),
+      );
+      for (let i = 0; i < specialtyChecks.length; i++) {
+        if (specialtyChecks[i].rows.length === 0) {
+          throw new BadRequestException(
+            `No existe la especialidad ${dto.specialtyIds[i].id}`,
+          );
         }
-
-        await client.query(
-          'INSERT INTO trainer_specialties (trainer_id, specialty_id) VALUES ($1, $2)',
-          [trainerId, sp.id],
-        );
       }
+
+      // 3. Insertar todas las especialidades (Promise.all evita await en loop)
+      await Promise.all(
+        dto.specialtyIds.map((sp) =>
+          client.query(
+            'INSERT INTO trainer_specialties (trainer_id, specialty_id) VALUES ($1, $2)',
+            [trainerId, sp.id],
+          ),
+        ),
+      );
 
       await client.query('COMMIT');
 
