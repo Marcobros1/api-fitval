@@ -38,8 +38,14 @@ No puede comprobar que las consultas SQL sean correctas, que las tablas existan,
 
 ## Pregunta 9
 
-El `ORDER BY` usa interpolación pero el valor viene de un objeto `SORT_COLUMNS` que mapea claves permitidas a columnas reales. El input del usuario nunca toca el SQL directamente: `sort=id;DROP TABLE` no existe en el mapa, así que `SORT_COLUMNS[sort]` es `undefined` y la validación del DTO (`IsEnum`) lo rechaza con 400 antes de llegar al servicio.
+El `ORDER BY` interpola `${sortColumn}`, pero ese valor sale de `SORT_COLUMNS`, un mapa fijo que solo tiene las claves `startsAt`, `activity` y `spots`. Antes, `ListClassesQueryDto` valida `sort` con `@IsEnum(ClassSortField)`: `sort=id;DROP TABLE classes` no es un valor del enum y la API responde 400 sin llegar al servicio. Y aunque llegara, `SORT_COLUMNS[sort]` sería `undefined`, nunca texto del usuario. El texto de la petición nunca se pega en el SQL.
 
 ## Pregunta 10
 
 El login tiene límite más duro (5/min vs 20/min) para frenar **fuerza bruta / credential stuffing**: evita que un atacante pruebe miles de contraseñas rápidamente. Sin `app.set('trust proxy', 1)` en Render, el rate limiter vería la IP del proxy (balancer de Render) y bloquearía a todos los usuarios tras 5 peticiones, no al atacante real.
+
+## Pregunta 11
+
+Sin la transacción, el monitor se guardaría en `trainers` antes de comprobar las especialidades: al fallar la 99, el `INSERT` del monitor ya estaría hecho y quedaría a medias. Con `BEGIN`/`ROLLBACK`, al lanzar el 400 se deshace todo y no queda nada. Lo he comprobado: tras el 400 de `[2, 99]`, `SELECT` no encuentra ningún monitor con ese DNI.
+
+Nuria no tiene el id 5 porque la secuencia `GENERATED ALWAYS AS IDENTITY` ya ha asignado ids a los monitores 1 a 4 y a los que se han insertado en pruebas anteriores. Los ids no se reutilizan: un intento fallido o un `ROLLBACK` también consume un id de la secuencia, así que el siguiente monitor tiene el id siguiente aunque el anterior no quedara guardado.

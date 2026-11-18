@@ -1,7 +1,7 @@
 import {
-  Injectable,
   BadRequestException,
   ConflictException,
+  Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
@@ -12,17 +12,15 @@ import { CreateTrainerDto } from './dto/create-trainer.dto';
 export class TrainersService {
   constructor(private readonly pool: Pool) {}
 
-  // GET /api/v1/trainers/:id - monitor con sus especialidades
+  // GET /api/v1/trainers/:id: el monitor con sus especialidades, o 404
   async findOne(id: number): Promise<Trainer> {
     const result = await this.pool.query<TrainerRow>(
-      `
-      SELECT t.id, t.dni, t.name, t.email, s.name AS specialty
-      FROM trainers t
-      LEFT JOIN trainer_specialties ts ON ts.trainer_id = t.id
-      LEFT JOIN specialties s ON s.id = ts.specialty_id
-      WHERE t.id = $1
-      ORDER BY s.name
-    `,
+      `SELECT t.id, t.name, t.email, s.name AS specialty
+       FROM trainers t
+       LEFT JOIN trainer_specialties ts ON ts.trainer_id = t.id
+       LEFT JOIN specialties s ON s.id = ts.specialty_id
+       WHERE t.id = $1
+       ORDER BY s.id`,
       [id],
     );
 
@@ -33,63 +31,55 @@ export class TrainersService {
     return trainer;
   }
 
-  // POST /api/v1/trainers - alta de monitor con especialidades (transacción)
+  // POST /api/v1/trainers: monitor y especialidades, todo o nada
   async create(dto: CreateTrainerDto): Promise<Trainer> {
+    const trainerId = await this.insertWithSpecialties(dto);
+    return this.findOne(trainerId);
+  }
+
+  // La transacción: si una especialidad no existe, no se guarda nada
+  private async insertWithSpecialties(dto: CreateTrainerDto): Promise<number> {
     const client: PoolClient = await this.pool.connect();
 
     try {
       await client.query('BEGIN');
 
-      // 1. Insertar monitor
-      const trainerResult = await client.query<{ id: number }>(
-        `
-        INSERT INTO trainers (dni, name, email)
-        VALUES ($1, $2, $3)
-        RETURNING id
-      `,
+      const inserted = await client.query<{ id: number }>(
+        'INSERT INTO trainers (dni, name, email) VALUES ($1, $2, $3) RETURNING id',
         [dto.dni, dto.name, dto.email],
       );
+      const trainerId = inserted.rows[0].id;
 
-      const trainerId = trainerResult.rows[0].id;
-
-      // 2. Verificar todas las especialidades (Promise.all evita await en loop)
-      const specialtyChecks = await Promise.all(
-        dto.specialtyIds.map((sp) =>
-          client.query('SELECT id FROM specialties WHERE id = $1', [sp.id]),
-        ),
+      // Una sola consulta: ¿qué especialidades de la lista existen?
+      const found = await client.query<{ id: number }>(
+        'SELECT id FROM specialties WHERE id = ANY($1::int[])',
+        [dto.specialtyIds],
       );
-      for (let i = 0; i < specialtyChecks.length; i++) {
-        if (specialtyChecks[i].rows.length === 0) {
-          throw new BadRequestException(
-            `No existe la especialidad ${dto.specialtyIds[i].id}`,
-          );
-        }
+      const foundIds = new Set(found.rows.map((row) => row.id));
+      const missing = dto.specialtyIds.find((id) => !foundIds.has(id));
+      if (missing !== undefined) {
+        throw new BadRequestException(`No existe la especialidad ${missing}`);
       }
 
-      // 3. Insertar todas las especialidades (Promise.all evita await en loop)
-      await Promise.all(
-        dto.specialtyIds.map((sp) =>
-          client.query(
-            'INSERT INTO trainer_specialties (trainer_id, specialty_id) VALUES ($1, $2)',
-            [trainerId, sp.id],
-          ),
-        ),
+      // Una sola consulta para guardar todas las especialidades
+      await client.query(
+        `INSERT INTO trainer_specialties (trainer_id, specialty_id)
+         SELECT $1, unnest($2::int[])`,
+        [trainerId, dto.specialtyIds],
       );
 
       await client.query('COMMIT');
-
-      // Devolver monitor completo
-      return this.findOne(trainerId);
+      return trainerId;
     } catch (error) {
       await client.query('ROLLBACK');
       const pgError = error as { code?: string };
       if (pgError.code === '23505') {
-        // unique violation (dni o email duplicado)
+        // DNI o correo ya existentes
         throw new ConflictException('DNI o correo ya registrado');
       }
       throw error;
     } finally {
-      client.release();
+      client.release(); // devuelve la conexión al pool, pase lo que pase
     }
   }
 }

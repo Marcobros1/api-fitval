@@ -232,6 +232,56 @@ describe('Classes (e2e)', () => {
     });
   });
 
+  describe('GET /api/v2/classes (paginación)', () => {
+    it('devuelve 200 con 3 clases en data y los metadatos de la página', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v2/classes')
+        .query({ page: 1, limit: 3 });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        page: 1,
+        limit: 3,
+        data: expect.any(Array) as unknown[],
+      });
+      const body = response.body as { data: unknown[]; total: number };
+      expect(body.data).toHaveLength(3);
+      expect(body.total).toBeGreaterThanOrEqual(3);
+    });
+
+    it('devuelve 400 si limit es mayor que 50', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v2/classes')
+        .query({ limit: 100 });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('devuelve 400 si page es 0', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v2/classes')
+        .query({ page: 0 });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('devuelve 400 si sort no está en la lista permitida', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v2/classes')
+        .query({ sort: 'price' });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('devuelve 400 si order no es asc ni desc', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/api/v2/classes')
+        .query({ order: 'up' });
+
+      expect(response.status).toBe(400);
+    });
+  });
+
   describe('DELETE /api/v1/classes/:id', () => {
     it('devuelve 401 sin token', async () => {
       const response = await request(app.getHttpServer()).delete(

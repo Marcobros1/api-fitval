@@ -12,16 +12,16 @@ import { CreateTrainerDto } from './dto/create-trainer.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { StaffGuard } from '../auth/staff.guard';
 
-@Controller('trainers')
+@Controller('trainers') // rutas /api/v1/trainers
 export class TrainersController {
   constructor(private readonly trainersService: TrainersService) {}
 
-  @Get(':id')
+  @Get(':id') // GET /api/v1/trainers/1 (sin guard)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.trainersService.findOne(id);
   }
 
-  @Post()
+  @Post() // POST /api/v1/trainers (solo staff)
   @UseGuards(AuthGuard, StaffGuard)
   create(@Body() dto: CreateTrainerDto) {
     return this.trainersService.create(dto);

@@ -1,49 +1,44 @@
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
+  ArrayMinSize,
+  ArrayUnique,
   IsArray,
   IsEmail,
   IsInt,
-  IsNotEmpty,
   IsString,
   Length,
   MaxLength,
   Min,
   MinLength,
-  ValidateNested,
-  ArrayMinSize,
-  ArrayUnique,
 } from 'class-validator';
+
+// Quita los espacios de los extremos si el valor es texto
+function trimText({ value }: { value: unknown }): unknown {
+  return typeof value === 'string' ? value.trim() : value;
+}
 
 export class CreateTrainerDto {
   @IsString()
-  @IsNotEmpty()
   @Length(9, 9, { message: 'El DNI debe tener 9 caracteres' })
-  @Transform(({ value }): string => (typeof value === 'string' ? value.trim() : value))
+  @Transform(trimText)
   dni!: string;
 
   @IsString()
-  @IsNotEmpty()
   @MinLength(1)
   @MaxLength(100)
-  @Transform(({ value }): string => (typeof value === 'string' ? value.trim() : value))
+  @Transform(trimText)
   name!: string;
 
   @IsEmail()
   @MaxLength(150)
-  @Transform(({ value }): string => (typeof value === 'string' ? value.trim() : value))
+  @Transform(trimText)
   email!: string;
 
+  // Ids de especialidades: enteros mayores que 0, al menos uno, sin repetir
   @IsArray()
   @ArrayMinSize(1, { message: 'Debe tener al menos una especialidad' })
-  @ArrayUnique((item: SpecialtyIdDto) => item.id, { message: 'Las especialidades no pueden repetirse' })
-  @ValidateNested({ each: true })
-  @Type(() => SpecialtyIdDto)
-  specialtyIds!: SpecialtyIdDto[];
-}
-
-export class SpecialtyIdDto {
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  id!: number;
+  @ArrayUnique({ message: 'Las especialidades no pueden repetirse' })
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  specialtyIds!: number[];
 }
