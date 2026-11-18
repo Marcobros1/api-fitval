@@ -14,7 +14,12 @@ export function configureApp(app: INestApplication): void {
     defaultVersion: '1',
   });
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      // Deja que el frontend (otro origen) muestre las fotos de /uploads
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
 
   // trust proxy para que el rate limiter funcione detrás de proxy (Render, nginx, etc.)
   const httpAdapter = app.getHttpAdapter();

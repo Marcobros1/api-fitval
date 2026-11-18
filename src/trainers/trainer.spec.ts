@@ -8,12 +8,14 @@ describe('toTrainer', () => {
         id: 1,
         name: 'Carla Navarro',
         email: 'carla@gym.com',
+        photo_url: null,
         specialty: 'Ciclo indoor',
       },
       {
         id: 1,
         name: 'Carla Navarro',
         email: 'carla@gym.com',
+        photo_url: null,
         specialty: 'Fuerza',
       },
     ];
@@ -26,23 +28,42 @@ describe('toTrainer', () => {
       id: 1,
       name: 'Carla Navarro',
       email: 'carla@gym.com',
+      photoUrl: null,
       specialties: ['Ciclo indoor', 'Fuerza'],
     });
   });
 
-  it('no devuelve el DNI', () => {
-    const rows = [
+  it('devuelve la dirección de la foto cuando el monitor tiene una', () => {
+    const rows: TrainerRow[] = [
+      {
+        id: 2,
+        name: 'Javier Ortega',
+        email: 'javier@gym.com',
+        photo_url: '/uploads/3f2a-c1.png',
+        specialty: 'Yoga',
+      },
+    ];
+
+    expect(toTrainer(rows)).toMatchObject({
+      photoUrl: '/uploads/3f2a-c1.png',
+    });
+  });
+
+  it('no devuelve el DNI ni el nombre de columna photo_url', () => {
+    const rows: TrainerRow[] = [
       {
         id: 1,
         name: 'Carla Navarro',
         email: 'carla@gym.com',
+        photo_url: null,
         specialty: 'Fuerza',
       },
-    ] as TrainerRow[];
+    ];
 
     const trainer = toTrainer(rows) as unknown as Record<string, unknown>;
 
     expect(trainer).not.toHaveProperty('dni');
+    expect(trainer).not.toHaveProperty('photo_url');
   });
 
   it('devuelve null si no hay filas', () => {
