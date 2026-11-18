@@ -112,15 +112,15 @@ describe('API de FitVal (e2e)', () => {
         .query({ page: 1, limit: 3 });
 
       expect(response.status).toBe(200);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
       expect(response.body).toHaveProperty('data');
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(Array.isArray(response.body.data)).toBe(true);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(response.body.data.length).toBe(3);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
       expect(response.body).toHaveProperty('total');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
       expect(response.body).toHaveProperty('totalPages');
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(response.body.page).toBe(1);

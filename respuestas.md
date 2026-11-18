@@ -39,3 +39,7 @@ No puede comprobar que las consultas SQL sean correctas, que las tablas existan,
 ## Pregunta 9
 
 El `ORDER BY` usa interpolación pero el valor viene de un objeto `SORT_COLUMNS` que mapea claves permitidas a columnas reales. El input del usuario nunca toca el SQL directamente: `sort=id;DROP TABLE` no existe en el mapa, así que `SORT_COLUMNS[sort]` es `undefined` y la validación del DTO (`IsEnum`) lo rechaza con 400 antes de llegar al servicio.
+
+## Pregunta 10
+
+El login tiene límite más duro (5/min vs 20/min) para frenar **fuerza bruta / credential stuffing**: evita que un atacante pruebe miles de contraseñas rápidamente. Sin `app.set('trust proxy', 1)` en Render, el rate limiter vería la IP del proxy (balancer de Render) y bloquearía a todos los usuarios tras 5 peticiones, no al atacante real.
