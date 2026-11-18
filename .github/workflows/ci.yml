@@ -49,3 +49,5 @@ jobs:
           npm rebuild argon2
       - name: Lint
         run: npm run lint
+      - name: Tests unitarios
+        run: npm test
