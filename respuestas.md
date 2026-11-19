@@ -53,3 +53,11 @@ Nuria no tiene el id 5 porque la secuencia `GENERATED ALWAYS AS IDENTITY` ya ha 
 ## Pregunta 12
 
 El navegador, no la API. La API responde 200 a cualquiera; el navegador compara la cabecera `Access-Control-Allow-Origin` con el origen de la página y, si no coinciden, bloquea la lectura en el JavaScript de esa web. Postman no es un navegador, así que no aplica CORS y lee la respuesta sin más.
+
+## Pregunta 13
+
+En Supabase, `/api/v1/health` responde `"database":"postgres"`, no `"fitval"`. El código no ha cambiado: `health` pregunta a PostgreSQL con `current_database()`, y ahora ese nombre es el de la base de datos del proyecto de Supabase. Lo único que he cambiado es la `DATABASE_URL` del `.env`.
+
+## Pregunta 14
+
+La foto se ha perdido: da 404 tras el redespliegue, porque Render guarda uploads/ en un disco que se borra en cada despliegue. El photoUrl del monitor sigue en GET /api/v1/trainers/1, porque la dirección está en la columna photo_url de Supabase, que no se borra. La API guarda el fichero en su propio disco y solo la dirección en la base de datos. Las fotos habría que guardarlas fuera del servidor, en Supabase Storage con un bucket público (apunte 08, apartado 2), y guardar la URL pública completa en photo_url.
