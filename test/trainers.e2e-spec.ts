@@ -71,6 +71,7 @@ describe('Trainers (e2e)', () => {
         id: 1,
         name: 'Carla Navarro',
         email: 'carla@gym.com',
+        photoUrl: null,
         specialties: ['Ciclo indoor', 'Fuerza'],
       });
     });
@@ -148,6 +149,7 @@ describe('Trainers (e2e)', () => {
         id: expect.any(Number) as number,
         name: VALID_BODY.name,
         email: VALID_BODY.email,
+        photoUrl: null, // un monitor nuevo no tiene foto hasta que se suba una
         specialties: ['Yoga', 'Baile'], // orden por specialties.id: 2 y luego 4
       });
     });
@@ -156,6 +158,82 @@ describe('Trainers (e2e)', () => {
       const response = await postTrainer(VALID_BODY, staffToken);
 
       expect(response.status).toBe(409);
+    });
+  });
+
+  describe('POST /api/v1/trainers/:id/photo', () => {
+    // Una imagen PNG 1x1 válida (70 bytes). FileTypeValidator comprueba el fichero
+    // completo, así que una cabecera suelta no vale: se rechazaría con 400
+    const PNG_BYTES = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      'base64',
+    );
+
+    // Monitor de prueba: el de VALID_BODY. Se busca por DNI para no depender del id
+    let trainerId: number;
+
+    beforeAll(async () => {
+      const { rows } = await pool.query<{ id: number }>(
+        'SELECT id FROM trainers WHERE dni = $1',
+        [VALID_BODY.dni],
+      );
+      trainerId = rows[0]?.id ?? 0;
+    });
+
+    it('devuelve 401 sin token', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/v1/trainers/${trainerId}/photo`)
+        .attach('photo', PNG_BYTES, 'foto.png');
+
+      expect(response.status).toBe(401);
+    });
+
+    it('devuelve 403 si el token es de un socio', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/v1/trainers/${trainerId}/photo`)
+        .set('Authorization', `Bearer ${memberToken}`)
+        .attach('photo', PNG_BYTES, 'foto.png');
+
+      expect(response.status).toBe(403);
+    });
+
+    it('devuelve 404 si el monitor no existe', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/v1/trainers/999999/photo')
+        .set('Authorization', `Bearer ${staffToken}`)
+        .attach('photo', PNG_BYTES, 'foto.png');
+
+      expect(response.status).toBe(404);
+    });
+
+    it('devuelve 400 si no llega ningún fichero', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/v1/trainers/${trainerId}/photo`)
+        .set('Authorization', `Bearer ${staffToken}`);
+
+      expect(response.status).toBe(400);
+    });
+
+    it('devuelve 400 si el fichero no es una imagen, aunque se llame .png', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/v1/trainers/${trainerId}/photo`)
+        .set('Authorization', `Bearer ${staffToken}`)
+        .attach('photo', Buffer.from('%PDF-1.4 texto'), 'falso.png');
+
+      expect(response.status).toBe(400);
+    });
+
+    it('devuelve 201 con photoUrl si la imagen es válida', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/api/v1/trainers/${trainerId}/photo`)
+        .set('Authorization', `Bearer ${staffToken}`)
+        .attach('photo', PNG_BYTES, 'foto.png');
+
+      expect(response.status).toBe(201);
+      expect(response.body).toMatchObject({
+        id: trainerId,
+        photoUrl: expect.stringMatching(/^\/uploads\/.+\.png$/) as string,
+      });
     });
   });
 });

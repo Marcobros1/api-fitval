@@ -13,6 +13,9 @@ async function bootstrap() {
 
   app.useGlobalFilters(new AllExceptionsFilter());
 
+  // Las fotos se sirven tal cual: /uploads/<nombre>
+  app.useStaticAssets('uploads', { prefix: '/uploads' });
+
   await app.listen(process.env.PORT ?? 3000);
 }
 void bootstrap();

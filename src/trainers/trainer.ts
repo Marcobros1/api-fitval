@@ -3,6 +3,7 @@ export interface TrainerRow {
   id: number;
   name: string;
   email: string;
+  photo_url: string | null;
   specialty: string | null;
 }
 
@@ -11,6 +12,7 @@ export interface Trainer {
   id: number;
   name: string;
   email: string;
+  photoUrl: string | null;
   specialties: string[];
 }
 
@@ -23,6 +25,7 @@ export function toTrainer(rows: TrainerRow[]): Trainer | null {
     id: first.id,
     name: first.name,
     email: first.email,
+    photoUrl: first.photo_url,
     specialties: rows
       .map((row) => row.specialty)
       .filter((specialty): specialty is string => specialty !== null),
