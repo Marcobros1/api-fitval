@@ -49,3 +49,7 @@ El login tiene límite más duro (5/min vs 20/min) para frenar **fuerza bruta / 
 Sin la transacción, el monitor se guardaría en `trainers` antes de comprobar las especialidades: al fallar la 99, el `INSERT` del monitor ya estaría hecho y quedaría a medias. Con `BEGIN`/`ROLLBACK`, al lanzar el 400 se deshace todo y no queda nada. Lo he comprobado: tras el 400 de `[2, 99]`, `SELECT` no encuentra ningún monitor con ese DNI.
 
 Nuria no tiene el id 5 porque la secuencia `GENERATED ALWAYS AS IDENTITY` ya ha asignado ids a los monitores 1 a 4 y a los que se han insertado en pruebas anteriores. Los ids no se reutilizan: un intento fallido o un `ROLLBACK` también consume un id de la secuencia, así que el siguiente monitor tiene el id siguiente aunque el anterior no quedara guardado.
+
+## Pregunta 12
+
+El navegador, no la API. La API responde 200 a cualquiera; el navegador compara la cabecera `Access-Control-Allow-Origin` con el origen de la página y, si no coinciden, bloquea la lectura en el JavaScript de esa web. Postman no es un navegador, así que no aplica CORS y lee la respuesta sin más.
