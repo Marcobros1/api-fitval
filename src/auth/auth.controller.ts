@@ -8,12 +8,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { AuthGuard } from './auth.guard';
 import type { AuthRequest } from './jwt-payload'; // "type": es solo un tipo
 
+@ApiTags('auth')
 @Controller('auth') // rutas /api/auth/...
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -32,6 +34,7 @@ export class AuthController {
 
   @Get('me') // GET /api/auth/me
   @UseGuards(AuthGuard) // antes de entrar, pasa por el portero
+  @ApiBearerAuth()
   me(@Req() request: AuthRequest) {
     return this.authService.me(request.userId); // el id que dejó el AuthGuard
   }

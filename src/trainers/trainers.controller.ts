@@ -13,6 +13,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { TrainersService } from './trainers.service';
 import { PhotosService } from './photos.service';
 import { CreateTrainerDto } from './dto/create-trainer.dto';
@@ -30,6 +31,7 @@ const photoPipe = new ParseFilePipe({
   ],
 });
 
+@ApiTags('trainers')
 @Controller('trainers') // rutas /api/v1/trainers
 export class TrainersController {
   constructor(
@@ -44,6 +46,7 @@ export class TrainersController {
 
   @Post() // POST /api/v1/trainers (solo staff)
   @UseGuards(AuthGuard, StaffGuard)
+  @ApiBearerAuth()
   create(@Body() dto: CreateTrainerDto) {
     return this.trainersService.create(dto);
   }
@@ -51,6 +54,7 @@ export class TrainersController {
   // POST /api/v1/trainers/1/photo (solo staff). El campo del formulario se llama "photo"
   @Post(':id/photo')
   @UseGuards(AuthGuard, StaffGuard)
+  @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('photo'))
   async uploadPhoto(
     @Param('id', ParseIntPipe) id: number,
