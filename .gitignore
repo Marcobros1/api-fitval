@@ -6,3 +6,6 @@ uploads/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# caché de Node en el sistema (no es del proyecto)
+c/
