@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -5,7 +6,8 @@ import { AppModule } from './app.module';
 import { configureApp } from './app.config';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 
-process.loadEnvFile(); // lee el .env y guarda sus valores en process.env
+// En tu ordenador, lee el .env. En Render no hay .env: las variables las pone Render.
+if (existsSync('.env')) process.loadEnvFile();
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -20,7 +22,9 @@ async function bootstrap() {
   // Swagger
   const config = new DocumentBuilder()
     .setTitle('API de FitVal')
-    .setDescription('API del gimnasio FitVal con registro, login, clases, monitores y especialidades')
+    .setDescription(
+      'API del gimnasio FitVal con registro, login, clases, monitores y especialidades',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();

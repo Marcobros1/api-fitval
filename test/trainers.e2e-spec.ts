@@ -2,11 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { Pool } from 'pg';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import {
-  createUser,
-  loginAs,
-  startApp,
-} from './helpers/app.helper';
+import { createUser, loginAs, startApp } from './helpers/app.helper';
 
 // Usuarios de prueba con correo único por ejecución
 const RUN_ID = Date.now();

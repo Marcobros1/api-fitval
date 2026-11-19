@@ -7,6 +7,12 @@ import helmet from 'helmet';
 import { AbstractHttpAdapter } from '@nestjs/core';
 
 export function configureApp(app: INestApplication): void {
+  // CORS: solo esta web puede usar la API desde el navegador.
+  // En Render, la dirección sale de la variable CORS_ORIGIN. En tu ordenador, la de Vite.
+  app.enableCors({
+    origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+  });
+
   app.setGlobalPrefix('api');
 
   app.enableVersioning({
@@ -23,7 +29,9 @@ export function configureApp(app: INestApplication): void {
 
   // trust proxy para que el rate limiter funcione detrás de proxy (Render, nginx, etc.)
   const httpAdapter = app.getHttpAdapter();
-  const instance = httpAdapter.getInstance() as AbstractHttpAdapter & { set: (key: string, value: number) => void };
+  const instance = httpAdapter.getInstance() as AbstractHttpAdapter & {
+    set: (key: string, value: number) => void;
+  };
   instance.set('trust proxy', 1);
 
   app.useGlobalPipes(
