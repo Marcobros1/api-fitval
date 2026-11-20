@@ -61,3 +61,9 @@ En Supabase, `/api/v1/health` responde `"database":"postgres"`, no `"fitval"`. E
 ## Pregunta 14
 
 La foto se ha perdido: da 404 tras el redespliegue, porque Render guarda uploads/ en un disco que se borra en cada despliegue. El photoUrl del monitor sigue en GET /api/v1/trainers/1, porque la dirección está en la columna photo_url de Supabase, que no se borra. La API guarda el fichero en su propio disco y solo la dirección en la base de datos. Las fotos habría que guardarlas fuera del servidor, en Supabase Storage con un bucket público (apunte 08, apartado 2), y guardar la URL pública completa en photo_url.
+
+## Pregunta 15
+
+La Direct connection de Supabase usa una dirección IPv6, y Render no tiene salida por IPv6, así que la conexión falla con `ENETUNREACH`. El Session pooler tiene una dirección IPv4 alcanzable desde Render, por eso funciona.
+
+Con el secreto cambiado, el token de Ana deja de valer: el `AuthGuard` lo verifica con el `JWT_SECRET` nuevo, la firma no coincide y responde 401 con «Token no válido o caducado». No es que haya caducado, sino que la firma ya no es válida. Se cambia el secreto a propósito si se sospecha que se ha filtrado, o al rotar claves de forma periódica, para invalidar de golpe todos los tokens emitidos.
