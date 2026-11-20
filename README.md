@@ -1,121 +1,115 @@
 # API de FitVal
 
-API del gimnasio FitVal con NestJS y PostgreSQL: clases, monitores, especialidades, registro, login con JWT, fotos y documentación Swagger.
+API del gimnasio FitVal, hecha con NestJS y PostgreSQL. Permite consultar planes y clases, gestionar monitores y sus especialidades, subir la foto de un monitor, y registrarse e iniciar sesión con JWT. Los endpoints de escritura están reservados al personal (`staff`).
 
-## Desplegada en Render
+## Despliegue
 
 - **API:** https://api-fitval-marcodemiguel.onrender.com
-- **Documentación (Swagger):** https://api-fitval-marcodemiguel.onrender.com/docs
+- **Documentación interactiva (Swagger):** https://api-fitval-marcodemiguel.onrender.com/docs
 
-El servicio gratuito se duerme tras 15 minutos sin uso. La primera petición puede tardar alrededor de un minuto.
+El plan gratuito de Render se duerme tras 15 minutos sin uso. La primera petición tras una pausa puede tardar alrededor de un minuto.
 
-## Ejecutar en local
+La base de datos es un proyecto de Supabase (PostgreSQL). Render usa la dirección del *Session pooler*.
+
+## Requisitos
+
+- Node.js 24 o superior
+- Docker, para PostgreSQL en local
+
+## Puesta en marcha en local
 
 ```bash
 npm install
-docker compose up -d        # PostgreSQL en el puerto 5433
-npm run start:dev
+docker compose up -d          # PostgreSQL 17 en el puerto 5433
 ```
 
-Las variables de entorno van en un `.env` (no se sube a GitHub). Ver `.env.example`.
-
----
-
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
-
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+Carga la base de datos (tablas y datos de prueba) con el fichero `database/schema.sql`:
 
 ```bash
-$ npm install
+# Git Bash, macOS o Linux
+docker exec -i postgres-fitval psql -U alumno -d fitval < database/schema.sql
+
+# PowerShell
+Get-Content database/schema.sql | docker exec -i postgres-fitval psql -U alumno -d fitval
 ```
 
-## Compile and run the project
+Crea un `.env` en la raíz a partir de `.env.example`:
+
+```env
+DATABASE_URL=postgres://alumno:CAMBIAME@localhost:5433/fitval
+JWT_SECRET=un-texto-largo-y-aleatorio
+CORS_ORIGIN=http://localhost:5173
+```
+
+Arranca la API:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm run start:dev             # http://localhost:3000
 ```
 
-## Run tests
+El `.env` no se sube a GitHub. En Render las mismas variables se escriben en la pestaña **Environment**.
+
+### Variables de entorno
+
+| Variable | Para qué sirve |
+|---|---|
+| `DATABASE_URL` | Conexión a PostgreSQL |
+| `JWT_SECRET` | Clave con la que se firman los tokens. Debe ser distinta en cada entorno |
+| `CORS_ORIGIN` | Dirección de la web que puede usar la API desde el navegador. Por defecto, `http://localhost:5173` |
+| `PORT` | Puerto de la API. Por defecto, 3000. Render lo asigna solo |
+
+## Rutas principales
+
+Todas las rutas empiezan por `/api`. Las versiones se indican en la ruta (`/api/v1`, `/api/v2`).
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| GET | `/api/v1/health` | Público | Estado de la API y de la base de datos |
+| GET | `/api/v1/plans` | Público | Planes y precios |
+| GET | `/api/v1/classes` | Público | Clases. Filtro opcional `?activity=yoga` |
+| GET | `/api/v1/classes/:id` | Público | Una clase |
+| POST | `/api/v1/classes` | Staff | Crear una clase |
+| DELETE | `/api/v1/classes/:id` | Staff | Borrar una clase sin reservas |
+| GET | `/api/v2/classes` | Público | Clases paginadas. Parámetros `page`, `limit` (1 a 50), `sort`, `order` |
+| GET | `/api/v1/trainers/:id` | Público | Monitor con sus especialidades (sin DNI) |
+| POST | `/api/v1/trainers` | Staff | Crear monitor y especialidades, todo o nada |
+| POST | `/api/v1/trainers/:id/photo` | Staff | Subir la foto del monitor (PNG, JPG o WEBP, máximo 2 MB) |
+| POST | `/api/v1/auth/register` | Público | Registro. Devuelve el usuario con rol `member` |
+| POST | `/api/v1/auth/login` | Público | Login. Devuelve un `accessToken` |
+| GET | `/api/v1/auth/me` | Con token | Datos del usuario del token |
+
+Los códigos de respuesta siguen la convención habitual: `200` y `201` para éxito, `400` para datos mal formados, `401` sin token válido, `403` sin permiso, `404` si no existe, `409` si choca con un dato existente, y `429` si se supera el límite de peticiones.
+
+## Tests
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm test                 # unitarios (src/**/*.spec.ts)
+npm run test:e2e         # integración (test/*.e2e-spec.ts), necesita PostgreSQL
 ```
 
-## Deployment
+Los tests de integración usan la base de datos del `.env`. Por eso, para ejecutarlos, el `.env` debe apuntar a Docker y no a Supabase.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+En cada PR, GitHub Actions ejecuta el lint y los tests unitarios (`.github/workflows/ci.yml`).
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Estructura
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+```text
+src/
+  auth/        registro, login, JWT y guards (AuthGuard, StaffGuard)
+  classes/     clases: lectura, alta, borrado y paginación
+  plans/       planes
+  trainers/    monitores, especialidades y fotos
+  users/       usuarios
+  database/    conexión a PostgreSQL
+  common/      filtro global de errores
+test/          tests de integración
+database/      schema.sql: tablas y datos de prueba
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Notas de seguridad
 
-## Resources
+- Las contraseñas se guardan como hash con argon2, nunca en texto plano.
+- Las cabeceras de seguridad las añade `helmet`.
+- El login y el resto de rutas tienen límite de peticiones por IP.
+- Las fotos se guardan en el disco del servidor. En Render ese disco se borra en cada despliegue, así que las fotos no son permanentes; ver las notas de la Parte 13 de la entrega.
 
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
