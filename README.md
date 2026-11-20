@@ -1,3 +1,26 @@
+# API de FitVal
+
+API del gimnasio FitVal con NestJS y PostgreSQL: clases, monitores, especialidades, registro, login con JWT, fotos y documentación Swagger.
+
+## Desplegada en Render
+
+- **API:** https://api-fitval-marcodemiguel.onrender.com
+- **Documentación (Swagger):** https://api-fitval-marcodemiguel.onrender.com/docs
+
+El servicio gratuito se duerme tras 15 minutos sin uso. La primera petición puede tardar alrededor de un minuto.
+
+## Ejecutar en local
+
+```bash
+npm install
+docker compose up -d        # PostgreSQL en el puerto 5433
+npm run start:dev
+```
+
+Las variables de entorno van en un `.env` (no se sube a GitHub). Ver `.env.example`.
+
+---
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
